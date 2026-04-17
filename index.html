@@ -737,9 +737,13 @@ function generateProblem(lvlIdx) {
 
 // ========== ゲームロジック ==========
 const LEVELS = [
-  { lv: '1F', name: 'きごうのまなびや', required: 2, enemies: [
+  { lv: '1F', name: 'きごうのまなびや', required: 6, enemies: [
     { name: 'スライム',    sprite: '🟢', hp: 1 },
-    { name: 'ドラキー',    sprite: '🦇', hp: 1 }
+    { name: 'ドラキー',    sprite: '🦇', hp: 1 },
+    { name: 'ホイミスライム', sprite: '🔵', hp: 1 },
+    { name: 'おばけキノコ', sprite: '🍄', hp: 1 },
+    { name: 'コウモリ',    sprite: '🦇', hp: 1 },
+    { name: 'ねずみ',      sprite: '🐀', hp: 1 }
   ]},
   { lv: '2F', name: 'まじわりのどうくつ', required: 3, enemies: [
     { name: 'おおさそり',   sprite: '🦂', hp: 1 },
