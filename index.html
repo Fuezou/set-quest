@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>集合クエスト ～数学Aの章～</title>
+<style>
+  /* ===================== ドラクエ風レトロCSS ===================== */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body {
+    height: 100%;
+    background: #000;
+    font-family: 'Courier New', 'ＭＳ ゴシック', monospace;
+    color: #fff;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-feature-settings: "palt";
+  }
+  #game {
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 900px;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: 2px solid #333;
+    overflow: hidden;
+  }
+
+.dq-window {
+background: #000;
+border: 3px solid #fff;
+box-shadow: 0 0 0 3px #000, 0 0 0 5px #fff;
+padding: 8px;
+margin: 4px 6px;
+position: relative;
+}
+
+/* — ステータス — */
+#status {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 4px;
+padding: 6px 10px;
+font-size: 12px;
+line-height: 1.7;
+flex-shrink: 0;
+}
+#status .row { display: flex; justify-content: space-between; }
+#status .label { color: #ffff00; letter-spacing: 1px; }
+#status .value { color: #fff; letter-spacing: 1px; }
+.hearts { letter-spacing: 2px; color: #ff4444; }
+.hearts .empty { color: #444; }
+
+/* — バトルフィールド — */
+#field {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+position: relative;
+min-height: 110px;
+overflow: hidden;
+background: linear-gradient(180deg, #0a0520 0%, #1a0a38 60%, #000 100%);
+}
+#field::before {
+content: ‘’;
+position: absolute; inset: 0;
+background-image:
+radial-gradient(1px 1px at 20% 30%, #fff 1px, transparent 0),
+radial-gradient(1px 1px at 70% 20%, #fff 1px, transparent 0),
+radial-gradient(1px 1px at 40% 70%, #fff 1px, transparent 0),
+radial-gradient(1px 1px at 85% 55%, #aaa 1px, transparent 0),
+radial-gradient(1px 1px at 15% 85%, #aaa 1px, transparent 0);
+pointer-events: none;
+}
+#monster {
+font-size: 80px;
+line-height: 1;
+filter: contrast(1.1) saturate(1.2);
+transition: transform 0.15s, opacity 0.3s;
+position: relative;
+z-index: 2;
+text-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+#monster.boss { font-size: 100px; animation: bossFloat 2s ease-in-out infinite; text-shadow: 0 0 16px rgba(255,0,0,0.6); }
+@keyframes bossFloat {
+0%, 100% { transform: translateY(0); }
+50% { transform: translateY(-6px); }
+}
+#monster.hit { animation: hit 0.3s; }
+@keyframes hit {
+0%, 100% { transform: translateX(0); filter: brightness(1); }
+20% { transform: translateX(-10px); filter: brightness(3) hue-rotate(180deg); }
+40% { transform: translateX(10px); filter: brightness(3) hue-rotate(180deg); }
+60% { transform: translateX(-6px); filter: brightness(3); }
+80% { transform: translateX(6px); }
+}
+#monster.dying { animation: die 0.8s forwards; }
+@keyframes die {
+0% { opacity: 1; transform: scale(1); }
+50% { opacity: 0.7; transform: scale(1.1); filter: brightness(3); }
+100% { opacity: 0; transform: scale(0.3) rotate(180deg); }
+}
+#monster.miss-dmg { animation: miss 0.4s; }
+@keyframes miss {
+0%, 100% { transform: translateX(0); }
+50% { transform: translateX(0) scale(1.08); filter: brightness(1.3) sepia(0.3); }
+}
+#monsterName {
+position: absolute;
+top: 8px;
+left: 50%;
+transform: translateX(-50%);
+font-size: 14px;
+color: #ffff00;
+letter-spacing: 2px;
+z-index: 3;
+text-shadow: 2px 2px 0 #000;
+}
+
+/* — 問題ウィンドウ — */
+#problemBox {
+padding: 10px;
+font-size: 14px;
+text-align: center;
+line-height: 1.6;
+min-height: 96px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+flex-shrink: 0;
+}
+#problemBox .label { color: #ffff00; font-size: 11px; margin-bottom: 6px; letter-spacing: 2px; }
+#problemBox .expr {
+color: #fff;
+font-size: 15px;
+letter-spacing: 1px;
+line-height: 1.8;
+}
+#problemBox .expr .set-def {
+color: #8fd4ff;
+display: block;
+margin: 2px 0;
+}
+#problemBox .expr .question {
+color: #fff;
+font-size: 17px;
+margin-top: 4px;
+}
+#problemBox .expr .symbol {
+color: #ffff00;
+font-weight: bold;
+font-size: 20px;
+}
+
+/* — 回答エリア — */
+#answerArea {
+padding: 6px;
+flex-shrink: 0;
+min-height: 120px;
+}
+
+/* ○× ボタン */
+.tf-pad {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+padding: 8px;
+}
+.tf-btn {
+background: #000;
+border: 3px solid #fff;
+color: #fff;
+font-family: inherit;
+font-size: 32px;
+font-weight: bold;
+padding: 20px 0;
+cursor: pointer;
+transition: all 0.05s;
+min-height: 72px;
+touch-action: manipulation;
+}
+.tf-btn.o-btn { color: #ff6666; }
+.tf-btn.x-btn { color: #6688ff; }
+.tf-btn:active {
+background: #fff;
+color: #000 !important;
+transform: translateY(1px);
+}
+
+/* 4択ボタン */
+.choice-pad {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 6px;
+padding: 6px;
+}
+.choice-btn {
+background: #000;
+border: 2px solid #fff;
+color: #fff;
+font-family: inherit;
+font-size: 15px;
+font-weight: bold;
+padding: 12px 8px;
+cursor: pointer;
+transition: all 0.05s;
+min-height: 50px;
+touch-action: manipulation;
+letter-spacing: 1px;
+text-align: center;
+line-height: 1.3;
+}
+.choice-btn:active {
+background: #fff;
+color: #000;
+transform: translateY(1px);
+}
+
+/* 回答後のハイライト */
+.tf-btn.correct, .choice-btn.correct {
+background: #005500;
+color: #00ff00 !important;
+border-color: #00ff00;
+animation: correctFlash 0.4s;
+}
+.tf-btn.wrong, .choice-btn.wrong {
+background: #550000;
+color: #ff4444 !important;
+border-color: #ff4444;
+animation: wrongShake 0.4s;
+}
+@keyframes correctFlash {
+0%, 100% { box-shadow: 0 0 0 0 #00ff00; }
+50% { box-shadow: 0 0 12px 2px #00ff00; }
+}
+@keyframes wrongShake {
+0%, 100% { transform: translateX(0); }
+25% { transform: translateX(-4px); }
+75% { transform: translateX(4px); }
+}
+
+/* — メッセージ — */
+#message {
+min-height: 50px;
+font-size: 13px;
+line-height: 1.6;
+letter-spacing: 1px;
+white-space: pre-wrap;
+flex-shrink: 0;
+}
+#message .arrow {
+position: absolute;
+bottom: 8px;
+right: 12px;
+color: #fff;
+animation: blink 0.8s steps(2) infinite;
+font-size: 14px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* オーバーレイ */
+.overlay {
+position: absolute;
+inset: 0;
+background: #000;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 24px;
+z-index: 100;
+text-align: center;
+}
+.overlay.hidden { display: none; }
+.overlay h1 {
+font-size: 26px;
+color: #ffff00;
+letter-spacing: 3px;
+margin-bottom: 20px;
+text-shadow: 3px 3px 0 #884400;
+line-height: 1.4;
+}
+.overlay p {
+font-size: 14px;
+color: #fff;
+line-height: 2;
+margin-bottom: 12px;
+letter-spacing: 1px;
+}
+.overlay .sub { color: #aaa; font-size: 12px; }
+.overlay .start-btn {
+background: #000;
+border: 3px solid #fff;
+box-shadow: 0 0 0 3px #000, 0 0 0 5px #fff;
+color: #ffff00;
+padding: 14px 28px;
+font-size: 16px;
+letter-spacing: 3px;
+cursor: pointer;
+margin-top: 20px;
+font-family: inherit;
+}
+.overlay .start-btn:active { background: #fff; color: #000; }
+.overlay .hero { font-size: 60px; margin-bottom: 12px; }
+
+/* ダメージ演出 */
+.dmg-float {
+position: absolute;
+font-size: 28px;
+font-weight: bold;
+color: #ff4444;
+text-shadow: 2px 2px 0 #000, 0 0 8px #ff0000;
+pointer-events: none;
+animation: dmgFloat 1s forwards;
+z-index: 10;
+}
+@keyframes dmgFloat {
+0% { opacity: 1; transform: translateY(0) scale(0.6); }
+30% { transform: translateY(-20px) scale(1.2); }
+100% { opacity: 0; transform: translateY(-60px) scale(1); }
+}
+
+#flash {
+position: absolute;
+inset: 0;
+background: #fff;
+opacity: 0;
+pointer-events: none;
+z-index: 50;
+}
+#flash.on { animation: flash 0.2s; }
+@keyframes flash {
+0% { opacity: 0; }
+50% { opacity: 0.8; }
+100% { opacity: 0; }
+}
+
+.level-up {
+position: absolute;
+top: 40%;
+left: 50%;
+transform: translate(-50%, -50%);
+font-size: 28px;
+color: #ffff00;
+text-shadow: 3px 3px 0 #884400, 0 0 16px #ffff00;
+letter-spacing: 3px;
+z-index: 20;
+animation: lvUp 1.8s forwards;
+pointer-events: none;
+text-align: center;
+}
+.level-up .floor-name {
+display: block;
+font-size: 18px;
+margin-top: 6px;
+color: #fff;
+}
+@keyframes lvUp {
+0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
+20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+}
+</style>
+
+</head>
+<body>
+<div id="game">
+
+  <!-- タイトル画面 -->
+
+  <div class="overlay" id="titleScreen">
+    <div class="hero">📜</div>
+    <h1>集合クエスト<br><span style="font-size:16px;color:#fff;">～数学Aの章～</span></h1>
+    <p>集合のダンジョンを<br>ちかいくだれ！</p>
+    <button class="start-btn" id="startBtn">▶ ぼうけんのはじまり</button>
+    <p class="sub" style="margin-top:20px;font-size:10px;line-height:1.8;">
+      1F きごうのまなびや<br>
+      2F まじわりのどうくつ<br>
+      3F ほしゅうごうのとう<br>
+      最深部 ま王のまどろみ
+    </p>
+  </div>
+
+  <!-- エンディング -->
+
+  <div class="overlay hidden" id="endingScreen">
+    <div class="hero">👑</div>
+    <h1>GAME CLEAR!</h1>
+    <p>ま王は　たおされた！</p>
+    <p>集合のきごうを　きわめし　勇者よ<br>その知恵に　栄光あれ。</p>
+    <p class="sub">～ FIN ～</p>
+    <button class="start-btn" id="restartBtn">▶ もう一度</button>
+  </div>
+
+  <!-- ゲームオーバー -->
+
+  <div class="overlay hidden" id="gameOverScreen">
+    <div class="hero">💀</div>
+    <h1 style="color:#ff4444;text-shadow:3px 3px 0 #440000;">ぜんめつ…</h1>
+    <p>勇者は倒れてしまった…</p>
+    <p class="sub">また挑戦しよう</p>
+    <button class="start-btn" id="retryBtn">▶ やりなおす</button>
+  </div>
+
+  <!-- ステータス -->
+
+  <div class="dq-window" id="status">
+    <div class="row"><span class="label">ゆうしゃ</span><span class="value" id="levelDisplay">1F</span></div>
+    <div class="row"><span class="label">ライフ</span><span class="value hearts" id="livesDisplay">♥♥</span></div>
+    <div class="row"><span class="label">げきは</span><span class="value" id="progressDisplay">0/2</span></div>
+    <div class="row"><span class="label">てき</span><span class="value" id="enemyHpDisplay">HP 1</span></div>
+  </div>
+
+  <!-- バトル場 -->
+
+  <div id="field">
+    <div id="monsterName">スライム</div>
+    <div id="monster">🟢</div>
+    <div id="flash"></div>
+  </div>
+
+  <!-- 問題 -->
+
+  <div class="dq-window" id="problemBox">
+    <div class="label">▼ もんだい</div>
+    <div class="expr" id="problemExpr"></div>
+  </div>
+
+  <!-- 回答エリア（LVによって中身が切り替わる） -->
+
+  <div class="dq-window" id="answerArea"></div>
+
+  <!-- メッセージ -->
+
+  <div class="dq-window" id="message" style="position:relative;">
+    モンスターが　あらわれた！
+    <span class="arrow" id="msgArrow" style="display:none;">▼</span>
+  </div>
+</div>
+
+<script>
+// ========== 問題生成 ==========
+// LV1: ∈/∉/⊂ の真偽 (○×)
+// LV2: ∩/∪ の結果 (4択)
+// LV3: 補集合・ド・モルガン・要素数 (4択)
+// BOSS: 上記の混成
+
+// 小集合表示用
+function fmtSet(arr) {
+  return '{' + [...arr].sort((a,b)=>a-b).join(', ') + '}';
+}
+function setEq(a, b) {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x,y)=>x-y);
+  const sb = [...b].sort((x,y)=>x-y);
+  return sa.every((v,i) => v === sb[i]);
+}
+function isSubset(a, b) {
+  // a ⊂ b
+  return a.every(x => b.includes(x));
+}
+function union(a, b) {
+  return [...new Set([...a, ...b])];
+}
+function intersect(a, b) {
+  return a.filter(x => b.includes(x));
+}
+function diff(u, a) {
+  return u.filter(x => !a.includes(x));
+}
+function rand(n) { return Math.floor(Math.random() * n); }
+function pick(arr) { return arr[rand(arr.length)]; }
+function pickN(arr, n) {
+  const shuffled = [...arr].sort(()=>Math.random()-0.5);
+  return shuffled.slice(0, n);
+}
+
+// ----- LV1: ∈ / ∉ / ⊂ の真偽 -----
+function genLv1() {
+  const type = pick(['in', 'notin', 'subset']);
+  if (type === 'in' || type === 'notin') {
+    // {a,b,c,...} の中に x が含まれるか
+    const size = 3 + rand(3); // 3〜5要素
+    const pool = pickN([1,2,3,4,5,6,7,8,9,10], size);
+    const wantTrue = Math.random() < 0.5;
+    let x;
+    if (wantTrue) x = pick(pool);
+    else {
+      const outside = [1,2,3,4,5,6,7,8,9,10].filter(v => !pool.includes(v));
+      x = pick(outside);
+    }
+    const actualIn = pool.includes(x);
+    const symbol = type === 'in' ? '∈' : '∉';
+    const claim = (symbol === '∈') ? actualIn : !actualIn;
+    // claim: 提示された命題が真かどうか
+    return {
+      prompt: `次の命題は　○か×か？`,
+      expr: `<span class="set-def">A = ${fmtSet(pool)}</span>
+             <span class="question">${x} <span class="symbol">${symbol}</span> A</span>`,
+      type: 'tf',
+      correct: claim ? 'O' : 'X',
+      key: `lv1-${type}-${pool.join(',')}-${x}`
+    };
+  } else {
+    // A ⊂ B の真偽
+    const poolB = pickN([1,2,3,4,5,6,7,8,9,10], 4 + rand(2));
+    const wantTrue = Math.random() < 0.5;
+    let poolA;
+    if (wantTrue) {
+      // B の部分集合をとる
+      const size = 2 + rand(Math.min(3, poolB.length - 1));
+      poolA = pickN(poolB, size);
+    } else {
+      // A に B 外の要素を混ぜる
+      const subSize = 1 + rand(2);
+      const outside = [1,2,3,4,5,6,7,8,9,10].filter(v => !poolB.includes(v));
+      const outElem = [pick(outside)];
+      poolA = [...pickN(poolB, subSize), ...outElem];
+    }
+    const actual = isSubset(poolA, poolB);
+    return {
+      prompt: `次の命題は　○か×か？`,
+      expr: `<span class="set-def">A = ${fmtSet(poolA)}</span>
+             <span class="set-def">B = ${fmtSet(poolB)}</span>
+             <span class="question">A <span class="symbol">⊂</span> B</span>`,
+      type: 'tf',
+      correct: actual ? 'O' : 'X',
+      key: `lv1-subset-${poolA.join(',')}-${poolB.join(',')}`
+    };
+  }
+}
+
+// ----- LV2: ∩ / ∪ の結果を4択 -----
+function genLv2() {
+  const op = pick(['cap', 'cup']);
+  const A = pickN([1,2,3,4,5,6,7,8,9], 3 + rand(2));
+  const B = pickN([1,2,3,4,5,6,7,8,9], 3 + rand(2));
+  // 共通部分を1〜2個確保するため、少し調整
+  if (intersect(A, B).length === 0) {
+    B[0] = A[0]; // 必ず共通要素を作る
+  }
+  const correct = op === 'cap' ? intersect(A, B) : union(A, B);
+  const symbol = op === 'cap' ? '∩' : '∪';
+  const opJa = op === 'cap' ? '共通部分' : '和集合';
+
+  // 選択肢を作る: 正解 + 誤答3つ
+  const wrongs = [];
+  wrongs.push(op === 'cap' ? union(A, B) : intersect(A, B)); // 逆演算
+  wrongs.push([...A]); // A そのまま
+  wrongs.push([...B]); // B そのまま
+
+  // 正解と重複する誤答を除外して補充
+  const uniqueWrongs = [];
+  for (const w of wrongs) {
+    if (!setEq(w, correct) && !uniqueWrongs.some(uw => setEq(uw, w))) {
+      uniqueWrongs.push(w);
+    }
+  }
+  while (uniqueWrongs.length < 3) {
+    // ランダムに要素増減
+    const base = Math.random() < 0.5 ? [...correct] : [...A];
+    const modified = [...base];
+    if (Math.random() < 0.5 && modified.length > 1) {
+      modified.splice(rand(modified.length), 1);
+    } else {
+      const notIn = [1,2,3,4,5,6,7,8,9].filter(v => !modified.includes(v));
+      if (notIn.length > 0) modified.push(pick(notIn));
+    }
+    if (!setEq(modified, correct) && !uniqueWrongs.some(uw => setEq(uw, modified))) {
+      uniqueWrongs.push(modified);
+    } else {
+      break;
+    }
+  }
+
+  const choices = [correct, ...uniqueWrongs.slice(0, 3)].sort(() => Math.random() - 0.5);
+  const correctIdx = choices.findIndex(c => setEq(c, correct));
+
+  return {
+    prompt: `A <span class="symbol">${symbol}</span> B を　もとめよ`,
+    expr: `<span class="set-def">A = ${fmtSet(A)}</span>
+           <span class="set-def">B = ${fmtSet(B)}</span>`,
+    type: 'choice',
+    choices: choices.map(c => fmtSet(c)),
+    correctIdx,
+    key: `lv2-${op}-${A.join(',')}-${B.join(',')}`
+  };
+}
+
+// ----- LV3: 補集合・ド・モルガン・要素数 -----
+function genLv3() {
+  const type = pick(['complement', 'demorgan', 'count']);
+
+  if (type === 'complement') {
+    // U を全体、A の補集合を求める
+    const U = [1,2,3,4,5,6,7,8].slice(0, 6 + rand(2));
+    const aSize = 2 + rand(2);
+    const A = pickN(U, aSize);
+    const correct = diff(U, A);
+    const wrongs = [
+      [...A],
+      diff(U, [A[0]]),
+      U.filter(x => x % 2 === 0).length ? U.filter(x => x % 2 === 0) : [...U]
+    ];
+    const uniqueWrongs = [];
+    for (const w of wrongs) {
+      if (!setEq(w, correct) && !uniqueWrongs.some(uw => setEq(uw, w))) uniqueWrongs.push(w);
+    }
+    while (uniqueWrongs.length < 3) {
+      const m = [...correct];
+      if (m.length > 1 && Math.random() < 0.5) m.splice(rand(m.length), 1);
+      else {
+        const notIn = U.filter(v => !m.includes(v));
+        if (notIn.length) m.push(pick(notIn));
+      }
+      if (!setEq(m, correct) && !uniqueWrongs.some(uw => setEq(uw, m))) uniqueWrongs.push(m);
+      else break;
+    }
+    const choices = [correct, ...uniqueWrongs.slice(0, 3)].sort(() => Math.random() - 0.5);
+    const correctIdx = choices.findIndex(c => setEq(c, correct));
+    return {
+      prompt: `A の　ほ集合 <span class="symbol">Ā</span> を　もとめよ`,
+      expr: `<span class="set-def">U = ${fmtSet(U)}</span>
+             <span class="set-def">A = ${fmtSet(A)}</span>`,
+      type: 'choice',
+      choices: choices.map(c => fmtSet(c)),
+      correctIdx,
+      key: `lv3-comp-${U.join(',')}-${A.join(',')}`
+    };
+  } else if (type === 'demorgan') {
+    // A∪B の補集合 = Ā∩B̄ の確認問題として、(A∪B)の補 を4択
+    const U = [1,2,3,4,5,6,7,8];
+    const A = pickN(U, 3 + rand(2));
+    const B = pickN(U, 3 + rand(2));
+    const un = union(A, B);
+    const correct = diff(U, un);
+    const wrongs = [
+      diff(U, intersect(A, B)), // (A∩B)の補
+      diff(U, A),
+      diff(U, B)
+    ];
+    const uniqueWrongs = [];
+    for (const w of wrongs) {
+      if (!setEq(w, correct) && !uniqueWrongs.some(uw => setEq(uw, w))) uniqueWrongs.push(w);
+    }
+    while (uniqueWrongs.length < 3) {
+      const m = [...correct];
+      if (m.length > 0 && Math.random() < 0.5) m.splice(rand(m.length), 1);
+      else {
+        const notIn = U.filter(v => !m.includes(v));
+        if (notIn.length) m.push(pick(notIn));
+      }
+      if (!setEq(m, correct) && !uniqueWrongs.some(uw => setEq(uw, m))) uniqueWrongs.push(m);
+      else break;
+    }
+    // 空集合対策: 正解が空の場合は ∅ 表示
+    const choices = [correct, ...uniqueWrongs.slice(0, 3)].sort(() => Math.random() - 0.5);
+    const correctIdx = choices.findIndex(c => setEq(c, correct));
+    return {
+      prompt: `<span class="symbol">A∪B</span> の ほ集合 を もとめよ`,
+      expr: `<span class="set-def">U = ${fmtSet(U)}</span>
+             <span class="set-def">A = ${fmtSet(A)}</span>
+             <span class="set-def">B = ${fmtSet(B)}</span>`,
+      type: 'choice',
+      choices: choices.map(c => c.length === 0 ? '∅' : fmtSet(c)),
+      correctIdx,
+      key: `lv3-dm-${A.join(',')}-${B.join(',')}`
+    };
+  } else {
+    // 要素数 n(A∪B) = n(A) + n(B) - n(A∩B)
+    const A = pickN([1,2,3,4,5,6,7,8,9], 3 + rand(2));
+    const B = pickN([1,2,3,4,5,6,7,8,9], 3 + rand(2));
+    // 共通部分を必ず1以上に
+    if (intersect(A, B).length === 0) B[0] = A[0];
+    const nA = A.length, nB = B.length, nAB = intersect(A, B).length;
+    const correct = nA + nB - nAB; // n(A∪B)
+    const wrongsArr = [
+      nA + nB,        // 引き忘れ
+      Math.max(0, nA + nB - 2 * nAB), // 2回引いた
+      nAB,            // 共通部分と混同
+    ];
+    const uniqueWrongs = [];
+    for (const w of wrongsArr) {
+      if (w !== correct && !uniqueWrongs.includes(w) && w >= 0) uniqueWrongs.push(w);
+    }
+    while (uniqueWrongs.length < 3) {
+      const m = correct + (Math.random() < 0.5 ? 1 : -1) * (1 + rand(2));
+      if (m !== correct && !uniqueWrongs.includes(m) && m >= 0) uniqueWrongs.push(m);
+      else break;
+    }
+    const choices = [correct, ...uniqueWrongs.slice(0, 3)].sort(() => Math.random() - 0.5);
+    const correctIdx = choices.findIndex(c => c === correct);
+    return {
+      prompt: `<span class="symbol">n(A∪B)</span> の　ようそのかずは？`,
+      expr: `<span class="set-def">A = ${fmtSet(A)}</span>
+             <span class="set-def">B = ${fmtSet(B)}</span>`,
+      type: 'choice',
+      choices: choices.map(c => String(c)),
+      correctIdx,
+      key: `lv3-count-${A.join(',')}-${B.join(',')}`
+    };
+  }
+}
+
+// ----- BOSS: ランダムに LV1〜3 を混ぜる -----
+function genBoss() {
+  const gens = [genLv1, genLv2, genLv3];
+  return pick(gens)();
+}
+
+// 問題生成器（直前と違う問題）
+let lastKey = null;
+function generateProblem(lvlIdx) {
+  const gens = [genLv1, genLv2, genLv3, genBoss];
+  const gen = gens[lvlIdx];
+  let p, attempts = 0;
+  do {
+    p = gen();
+    attempts++;
+    if (attempts > 20) break;
+  } while (p.key === lastKey);
+  lastKey = p.key;
+  return p;
+}
+
+// ========== ゲームロジック ==========
+const LEVELS = [
+  { lv: '1F', name: 'きごうのまなびや', required: 2, enemies: [
+    { name: 'スライム',    sprite: '🟢', hp: 1 },
+    { name: 'ドラキー',    sprite: '🦇', hp: 1 }
+  ]},
+  { lv: '2F', name: 'まじわりのどうくつ', required: 3, enemies: [
+    { name: 'おおさそり',   sprite: '🦂', hp: 1 },
+    { name: 'リカント',     sprite: '🐺', hp: 1 },
+    { name: 'キメラ',       sprite: '🦅', hp: 1 }
+  ]},
+  { lv: '3F', name: 'ほしゅうごうのとう', required: 4, enemies: [
+    { name: 'ベビーサタン', sprite: '👹', hp: 1 },
+    { name: 'ゴーレム',     sprite: '🗿', hp: 1 },
+    { name: 'ミミック',     sprite: '📦', hp: 1 },
+    { name: 'ダースドラゴン', sprite: '🐉', hp: 1 }
+  ]},
+  { lv: 'BOSS', name: 'ま王のまどろみ', required: 1, enemies: [
+    { name: '魔王ドラゴン', sprite: '🐲', hp: 2, isBoss: true }
+  ]}
+];
+
+const state = {
+  levelIdx: 0,
+  defeatedInLevel: 0,
+  enemyIdx: 0,
+  enemyHp: 1,
+  lives: 2,
+  problem: null,
+  awaitingContinue: false,
+  gameStarted: false,
+  locked: false // 回答判定中のロック
+};
+
+const $ = id => document.getElementById(id);
+const levelDisplay = $('levelDisplay');
+const livesDisplay = $('livesDisplay');
+const progressDisplay = $('progressDisplay');
+const enemyHpDisplay = $('enemyHpDisplay');
+const monsterEl = $('monster');
+const monsterNameEl = $('monsterName');
+const problemExprEl = $('problemExpr');
+const answerAreaEl = $('answerArea');
+const messageEl = $('message');
+const msgArrow = $('msgArrow');
+const flashEl = $('flash');
+const fieldEl = $('field');
+
+// ステータス更新
+function renderStatus() {
+  const lvl = LEVELS[state.levelIdx];
+  levelDisplay.textContent = lvl.lv;
+  livesDisplay.innerHTML = '♥'.repeat(state.lives) + '<span class="empty">' + '♡'.repeat(2 - state.lives) + '</span>';
+  if (lvl.lv === 'BOSS') {
+    progressDisplay.textContent = '最終戦';
+  } else {
+    progressDisplay.textContent = `${state.defeatedInLevel}/${lvl.required}`;
+  }
+  enemyHpDisplay.textContent = `HP ${state.enemyHp}`;
+}
+
+function renderEnemy() {
+  const lvl = LEVELS[state.levelIdx];
+  const enemy = lvl.enemies[state.enemyIdx];
+  monsterEl.textContent = enemy.sprite;
+  monsterEl.className = enemy.isBoss ? 'boss' : '';
+  monsterNameEl.textContent = enemy.name;
+}
+
+function setMessage(text, showArrow = false) {
+  messageEl.firstChild.textContent = text;
+  msgArrow.style.display = showArrow ? 'inline' : 'none';
+}
+
+function renderProblem() {
+  problemExprEl.innerHTML = state.problem.expr;
+  $('problemBox').querySelector('.label').innerHTML = '▼ ' + state.problem.prompt;
+  renderAnswerArea();
+}
+
+function renderAnswerArea() {
+  answerAreaEl.innerHTML = '';
+  if (state.problem.type === 'tf') {
+    const pad = document.createElement('div');
+    pad.className = 'tf-pad';
+    ['O', 'X'].forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'tf-btn ' + (v === 'O' ? 'o-btn' : 'x-btn');
+      btn.textContent = v === 'O' ? '○' : '×';
+      btn.dataset.answer = v;
+      btn.addEventListener('click', () => handleAnswer(v, btn));
+      pad.appendChild(btn);
+    });
+    answerAreaEl.appendChild(pad);
+  } else if (state.problem.type === 'choice') {
+    const pad = document.createElement('div');
+    pad.className = 'choice-pad';
+    state.problem.choices.forEach((c, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = c;
+      btn.dataset.answerIdx = idx;
+      btn.addEventListener('click', () => handleAnswer(idx, btn));
+      pad.appendChild(btn);
+    });
+    answerAreaEl.appendChild(pad);
+  }
+}
+
+function handleAnswer(answer, btn) {
+  if (state.locked || state.awaitingContinue || !state.gameStarted) return;
+  state.locked = true;
+  let correct;
+  if (state.problem.type === 'tf') {
+    correct = (answer === state.problem.correct);
+  } else {
+    correct = (answer === state.problem.correctIdx);
+  }
+  // 押したボタンにハイライト
+  if (correct) {
+    btn.classList.add('correct');
+  } else {
+    btn.classList.add('wrong');
+    // 正解ボタンも緑にハイライト
+    setTimeout(() => {
+      const correctBtn = state.problem.type === 'tf'
+        ? answerAreaEl.querySelector(`[data-answer="${state.problem.correct}"]`)
+        : answerAreaEl.querySelector(`[data-answer-idx="${state.problem.correctIdx}"]`);
+      if (correctBtn) correctBtn.classList.add('correct');
+    }, 300);
+  }
+  setTimeout(() => {
+    if (correct) onCorrect();
+    else onWrong();
+  }, correct ? 400 : 900);
+}
+
+// ダメージ演出
+function showDamage(text, color = '#ff4444') {
+  const d = document.createElement('div');
+  d.className = 'dmg-float';
+  d.textContent = text;
+  d.style.color = color;
+  d.style.textShadow = `2px 2px 0 #000, 0 0 8px ${color}`;
+  const rect = monsterEl.getBoundingClientRect();
+  const fieldRect = fieldEl.getBoundingClientRect();
+  d.style.left = `${rect.left - fieldRect.left + rect.width/2 - 20}px`;
+  d.style.top = `${rect.top - fieldRect.top + 10}px`;
+  fieldEl.appendChild(d);
+  setTimeout(() => d.remove(), 1000);
+}
+
+function flashScreen() {
+  flashEl.classList.remove('on');
+  void flashEl.offsetWidth;
+  flashEl.classList.add('on');
+}
+
+function showLevelUp(name) {
+  const el = document.createElement('div');
+  el.className = 'level-up';
+  el.innerHTML = `NEXT FLOOR<span class="floor-name">${name}</span>`;
+  fieldEl.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+// ========== ゲームフロー ==========
+function startGame() {
+  state.levelIdx = 0;
+  state.defeatedInLevel = 0;
+  state.enemyIdx = 0;
+  state.lives = 2;
+  state.awaitingContinue = false;
+  state.gameStarted = true;
+  state.locked = false;
+  lastKey = null;
+  const lvl = LEVELS[state.levelIdx];
+  state.enemyHp = lvl.enemies[0].hp;
+  renderEnemy();
+  renderStatus();
+  nextProblem();
+  setMessage(`${lvl.enemies[0].name}が　あらわれた！`);
+}
+
+function nextProblem() {
+  state.problem = generateProblem(state.levelIdx);
+  state.locked = false;
+  renderProblem();
+}
+
+// --- タップで続行 ---
+let continueCallback = null;
+function awaitTap(callback) {
+  state.awaitingContinue = true;
+  continueCallback = callback;
+  msgArrow.style.display = 'inline';
+}
+function handleContinueTap() {
+  if (!state.awaitingContinue || !continueCallback) return;
+  msgArrow.style.display = 'none';
+  state.awaitingContinue = false;
+  const cb = continueCallback;
+  continueCallback = null;
+  cb();
+}
+messageEl.addEventListener('click', handleContinueTap);
+fieldEl.addEventListener('click', handleContinueTap);
+
+function onCorrect() {
+  state.enemyHp -= 1;
+  flashScreen();
+  monsterEl.classList.remove('hit');
+  void monsterEl.offsetWidth;
+  monsterEl.classList.add('hit');
+  showDamage('HIT!', '#ffff00');
+
+  const lvl = LEVELS[state.levelIdx];
+  const enemy = lvl.enemies[state.enemyIdx];
+
+  if (state.enemyHp <= 0) {
+    setTimeout(() => {
+      monsterEl.classList.add('dying');
+      setMessage(`${enemy.name}を　たおした！`);
+      renderStatus();
+      setTimeout(() => onEnemyDefeated(), 1200);
+    }, 300);
+  } else {
+    setMessage(`こうげき！　${enemy.name}に\nダメージ！　あと HP${state.enemyHp}！`);
+    renderStatus();
+    setTimeout(() => {
+      state.lives = 2;
+      nextProblem();
+      setMessage(`つぎの　もんだい！`);
+      renderStatus();
+    }, 1400);
+  }
+}
+
+function onWrong() {
+  state.lives -= 1;
+  monsterEl.classList.remove('miss-dmg');
+  void monsterEl.offsetWidth;
+  monsterEl.classList.add('miss-dmg');
+  showDamage('MISS', '#ff4444');
+  renderStatus();
+
+  if (state.lives <= 0) {
+    setMessage(`ミス！　ちからつきた…`);
+    awaitTap(() => showGameOver());
+  } else {
+    setMessage(`ミス！　こうげきが　はずれた…\n（のこりライフ　${state.lives}）`);
+    awaitTap(() => {
+      // 新しい問題を出す（ミスで状況変わる）
+      nextProblem();
+      setMessage('もういちど　チャレンジ！');
+    });
+  }
+}
+
+function onEnemyDefeated() {
+  const lvl = LEVELS[state.levelIdx];
+  const enemy = lvl.enemies[state.enemyIdx];
+
+  if (enemy.isBoss) {
+    showEnding();
+    return;
+  }
+
+  state.defeatedInLevel += 1;
+  state.lives = 2;
+  renderStatus();
+
+  if (state.defeatedInLevel >= lvl.required) {
+    const nextLvl = LEVELS[state.levelIdx + 1];
+    showLevelUp(nextLvl.name);
+    setTimeout(() => {
+      state.levelIdx += 1;
+      state.defeatedInLevel = 0;
+      state.enemyIdx = 0;
+      state.enemyHp = nextLvl.enemies[0].hp;
+      monsterEl.classList.remove('dying');
+      renderEnemy();
+      renderStatus();
+      nextProblem();
+      if (nextLvl.lv === 'BOSS') {
+        setMessage(`ま王が　あらわれた！\nちからの　かぎりを　つくせ！`);
+      } else {
+        setMessage(`${nextLvl.name}に　とうちゃく！\n${nextLvl.enemies[0].name}が　あらわれた！`);
+      }
+    }, 1800);
+  } else {
+    setTimeout(() => {
+      state.enemyIdx += 1;
+      const nextEnemy = lvl.enemies[state.enemyIdx];
+      state.enemyHp = nextEnemy.hp;
+      monsterEl.classList.remove('dying');
+      renderEnemy();
+      renderStatus();
+      nextProblem();
+      setMessage(`${nextEnemy.name}が　あらわれた！`);
+    }, 900);
+  }
+}
+
+function showEnding() { $('endingScreen').classList.remove('hidden'); }
+function showGameOver() {
+  $('gameOverScreen').classList.remove('hidden');
+  state.gameStarted = false;
+}
+
+$('startBtn').addEventListener('click', () => {
+  $('titleScreen').classList.add('hidden');
+  startGame();
+});
+$('restartBtn').addEventListener('click', () => {
+  $('endingScreen').classList.add('hidden');
+  startGame();
+});
+$('retryBtn').addEventListener('click', () => {
+  $('gameOverScreen').classList.add('hidden');
+  startGame();
+});
+
+// 初期化
+renderStatus();
+renderEnemy();
+</script>
+
+</body>
+</html>
